@@ -25,24 +25,46 @@ namespace PictureShower
         public MainWindow()
         {
             InitializeComponent();
+        }
 
-            List<Image> images = GetImages();
-            SetMargin(images, 0, 0, 0, 0);
-            PicturesPanel panel1 = new PicturesPanel(Orientation.Horizontal, "Main Horizontal");
-            PicturesPanel panel2 = new PicturesPanel(Orientation.Vertical, "Second Vertical");
-            PicturesPanel panel3 = new PicturesPanel(Orientation.Horizontal, "Third Horizontal");
-            MainGrid.Children.Add(panel1);
+        /// <summary>
+        /// Запускает формирование коллажа.
+        /// </summary>
+        private void StartCollage(List<Image> images)
+        {
+            CollagePanel panel1 = new CollagePanel(Orientation.Horizontal);
+            CollagePanel panel2 = new CollagePanel(Orientation.Vertical);
+            CollagePanel panel3 = new CollagePanel(Orientation.Horizontal);
+            CollagePanel panel4 = new CollagePanel(Orientation.Vertical);
+            CollageGrid.Children.Add(panel1);
 
-            panel1.AddChild(images[0]);
+            panel1.AddChild(GetRandomImageFromList(images));
             panel1.AddChild(panel2);
             panel2.AddChild(panel3);
-            panel3.AddChild(images[4]);
-            panel3.AddChild(images[5]);
-            panel2.AddChild(images[1]);
-            panel1.AddChild(images[3]);
-            panel1.AddChild(images[6]);
+            panel3.AddChild(GetRandomImageFromList(images));
+            panel3.AddChild(panel4);
+            panel4.AddChild(GetRandomImageFromList(images));
+            panel4.AddChild(GetRandomImageFromList(images));
+            panel2.AddChild(GetRandomImageFromList(images));
+            panel1.AddChild(GetRandomImageFromList(images));
+            panel1.AddChild(GetRandomImageFromList(images));
 
-            MainGrid.UpdateLayout();
+            CollageGrid.UpdateLayout();
+        }
+
+        /// <summary>
+        /// Возвращает случайный элемент из коллекции, реализующей IList<T>. Элемент при этом удаляется из коллекции.
+        /// </summary>
+        private T GetRandomImageFromList<T>(IList<T> elements)
+        {
+            Random random = new Random();
+
+            int randomIndex = random.Next(0, elements.Count() - 1);
+            T element = elements[randomIndex];
+
+            elements.Remove(element);
+
+            return element;
         }
 
         /// <summary>
@@ -66,6 +88,16 @@ namespace PictureShower
             {
                 element.SetValue(MarginProperty, margin);
             }
+        }
+
+        /// <summary>
+        /// Устанавливает отступ со всех сторон для всех элементов в коллекции.
+        /// </summary>
+        /// <param name="elements">Коллекция элементов</param>
+        /// <param name="margin">Отступ</param>
+        private static void SetMargin(IEnumerable<UIElement> elements, int margin)
+        {
+            SetMargin(elements, margin, margin, margin, margin);
         }
 
         /// <summary>
@@ -93,141 +125,65 @@ namespace PictureShower
 
             return images;
         }
-    }
-    public class PicturesPanel : Grid
-    {
-        public Orientation Orientation { get; private set; }
-        public string Name { get; set; }
-        public PicturesPanel(Orientation orientation, string name)
-        {
-            Name = name;
-            SetOrientation(orientation);
 
-            VerticalAlignment = VerticalAlignment.Center;
-            HorizontalAlignment = HorizontalAlignment.Center;
-        }
-        private void SetOrientation(Orientation orientation)
+        /// <summary>
+        /// Удаляет все элементы панели, если она не пуста.
+        /// </summary>
+        private void ClearPanel(Panel panel)
         {
-            Orientation = orientation;
-
-            switch (Orientation)
+            if (panel.Children.Count > 0)
             {
-                case Orientation.Horizontal:
-                    RowDefinitions.Add(new RowDefinition());
-                    break;
-                case Orientation.Vertical:
-                    ColumnDefinitions.Add(new ColumnDefinition());
-                    break;
-                default:
-                    break;
+                panel.Children.Clear();
             }
         }
-        public void AddChild(FrameworkElement element)
+
+        /// <summary>
+        /// Возвращает значение Margin из текстбокса на форме. Если значение пустое или некорректное, возвращает 5.
+        /// </summary>
+        /// <returns></returns>
+        private int GetMargin()
         {
-            switch (Orientation)
+            if (int.TryParse(MarginTextBox.Text, out int margin))
             {
-                case Orientation.Horizontal:
-                    ColumnDefinition column = new ColumnDefinition();
-                    column.Width = new GridLength(1, GridUnitType.Auto);
-                    ColumnDefinitions.Add(column);
-                    Children.Add(element);
-                    //SetDock(element, Dock.Left);
-                    SetColumn(element, Children.IndexOf(element));
-                    break;
-
-                case Orientation.Vertical:
-                    RowDefinition row = new RowDefinition();
-                    row.Height = new GridLength(1, GridUnitType.Auto);
-                    RowDefinitions.Add(row);
-                    Children.Add(element);
-                    //SetDock(element, Dock.Top);
-                    SetRow(element, Children.IndexOf(element));
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        protected override Size MeasureOverride(Size constraint)
-        {
-            if (double.IsInfinity(constraint.Width) && !double.IsInfinity(constraint.Height))
-            {
-                constraint.Width = DesiredSize.Width;
-            }
-            else if (double.IsInfinity(constraint.Height) && !double.IsInfinity(constraint.Width))
-            {
-                constraint.Height = DesiredSize.Height;
-            }
-
-            Size finalSize = new Size();
-            Size infiniteSize = new Size(double.PositiveInfinity, double.PositiveInfinity);
-            Size tempSize = constraint;
-            string name = this.Name;
-
-            foreach (UIElement child in InternalChildren)
-            {
-                if (child.DesiredSize.Equals(new Size(0, 0)))
-                {
-                    child.Measure(infiniteSize);
-
-                    switch (Orientation)
-                    {
-                        case Orientation.Horizontal:
-                            tempSize.Height = Math.Min(child.DesiredSize.Height, tempSize.Height);
-                            break;
-                        case Orientation.Vertical:
-                            tempSize.Width = Math.Min(child.DesiredSize.Width, tempSize.Width);
-                            break;
-                    }
-                }
-            }
-
-            foreach (UIElement child in InternalChildren)
-            {
-                child.Measure(tempSize);
-
-                switch (Orientation)
-                {
-                    case Orientation.Horizontal:
-                        finalSize.Height = Math.Max(finalSize.Height, child.DesiredSize.Height);
-                        finalSize.Width += child.DesiredSize.Width;
-                        break;
-                    case Orientation.Vertical:
-                        finalSize.Width = Math.Max(finalSize.Width, child.DesiredSize.Width);
-                        finalSize.Height += child.DesiredSize.Height;
-                        break;
-                }
-            }
-
-            if (!double.IsInfinity(constraint.Height) && !double.IsInfinity(constraint.Width))
-            {
-                double coefficient;
-                switch (Orientation)
-                {
-                    case Orientation.Horizontal:
-                        coefficient = constraint.Width / finalSize.Width;
-                        finalSize.Height = finalSize.Height * coefficient;
-                        finalSize.Width = finalSize.Width * coefficient;
-                        break;
-                    case Orientation.Vertical:
-                        coefficient = finalSize.Width / finalSize.Height;
-                        finalSize.Width = constraint.Height * coefficient;
-                        finalSize.Height = finalSize.Width / coefficient;
-                        break;
-                }
-            }
-
-            //size.Width = double.IsPositiveInfinity(constraint.Width) ? size.Width : constraint.Width;
-            //size.Height = double.IsPositiveInfinity(constraint.Height) ? size.Height : constraint.Height;
-
-            if (finalSize.Width > DesiredSize.Width && finalSize.Height > DesiredSize.Height && !DesiredSize.Equals(new Size(0, 0)))
-            {
-                return base.MeasureOverride(DesiredSize);
+                return margin;
             }
             else
             {
-                return base.MeasureOverride(finalSize);
+                return 5;
             }
+        }
+
+        /// <summary>
+        /// Устанавливает размеры панели исходя из данных, введённых в поле WidthTextBox.
+        /// </summary>
+        private void SetPanelSize(Panel panel)
+        {
+            if (int.TryParse(WidthTextBox.Text, out int width))
+            {
+                panel.Width = width;
+                panel.Height = Width / 2;
+            }
+            else
+            {
+                panel.Width = 1000;
+                panel.Height = 500;
+            }
+        }
+
+        /// <summary>
+        /// Клик на кнопку "Запустить коллаж"
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void StartButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClearPanel(CollageGrid);
+            SetPanelSize(CollageGrid);
+            int margin = GetMargin();
+            List<Image> images = GetImages();
+            SetMargin(images, margin);
+
+            StartCollage(images);
         }
     }
 }
