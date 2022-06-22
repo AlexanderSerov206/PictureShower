@@ -5,8 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PictureShower"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid Name="MainGrid" >
-
+        Title="MainWindow" Height="550" Width="1050" Background="#FFD6D6D6">
+    <Grid Width="1000" Name="MainGrid">
+        <!--<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" ClipToBounds="True">
+            <Image Source="Images/1.jpg"/>
+            <Image Source="Images/2.jpg"/>
+            --><!--<Grid Grid.Column="2" ClipToBounds="True">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="700"/>
+                </Grid.ColumnDefinitions>
+                <Image Grid.Row="0" Source="Images/3.jpg" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Image Grid.Row="1" Source="Images/4.jpg" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>--><!--
+            <Image Source="Images/5.jpg"/>
+        </StackPanel>-->
     </Grid>
 </Window>

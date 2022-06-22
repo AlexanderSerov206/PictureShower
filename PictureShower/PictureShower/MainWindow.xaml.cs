@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -26,28 +27,22 @@ namespace PictureShower
             InitializeComponent();
 
             List<Image> images = GetImages();
-            SetMargin(images, 5, 5, 15, 5);
+            SetMargin(images, 0, 0, 0, 0);
+            PicturesPanel panel1 = new PicturesPanel(Orientation.Horizontal, "Main Horizontal");
+            PicturesPanel panel2 = new PicturesPanel(Orientation.Vertical, "Second Vertical");
+            PicturesPanel panel3 = new PicturesPanel(Orientation.Horizontal, "Third Horizontal");
+            MainGrid.Children.Add(panel1);
+
+            panel1.AddChild(images[0]);
+            panel1.AddChild(panel2);
+            panel2.AddChild(panel3);
+            panel3.AddChild(images[4]);
+            panel3.AddChild(images[5]);
+            panel2.AddChild(images[1]);
+            panel1.AddChild(images[3]);
+            panel1.AddChild(images[6]);
 
             MainGrid.UpdateLayout();
-
-            PicturesPanel picturesPanel = new PicturesPanel();
-            picturesPanel.Orientation = Orientation.Horizontal;
-            picturesPanel.HorizontalAlignment = HorizontalAlignment.Center;
-            picturesPanel.VerticalAlignment = VerticalAlignment.Center;
-
-            picturesPanel.Children.Add(images[0]);
-            picturesPanel.Children.Add(images[1]);
-
-            PicturesPanel picturesPanel2 = new PicturesPanel();
-            picturesPanel2.Children.Add(images[2]);
-            picturesPanel2.Children.Add(images[3]);
-            picturesPanel2.Orientation = Orientation.Vertical;
-
-            picturesPanel.Children.Add(picturesPanel2);
-
-            MainGrid.Children.Add(picturesPanel);
-
-            UpdateLayout();
         }
 
         /// <summary>
@@ -99,60 +94,140 @@ namespace PictureShower
             return images;
         }
     }
-    public class PicturesPanel : StackPanel
+    public class PicturesPanel : Grid
     {
+        public Orientation Orientation { get; private set; }
+        public string Name { get; set; }
+        public PicturesPanel(Orientation orientation, string name)
+        {
+            Name = name;
+            SetOrientation(orientation);
+
+            VerticalAlignment = VerticalAlignment.Center;
+            HorizontalAlignment = HorizontalAlignment.Center;
+        }
+        private void SetOrientation(Orientation orientation)
+        {
+            Orientation = orientation;
+
+            switch (Orientation)
+            {
+                case Orientation.Horizontal:
+                    RowDefinitions.Add(new RowDefinition());
+                    break;
+                case Orientation.Vertical:
+                    ColumnDefinitions.Add(new ColumnDefinition());
+                    break;
+                default:
+                    break;
+            }
+        }
+        public void AddChild(FrameworkElement element)
+        {
+            switch (Orientation)
+            {
+                case Orientation.Horizontal:
+                    ColumnDefinition column = new ColumnDefinition();
+                    column.Width = new GridLength(1, GridUnitType.Auto);
+                    ColumnDefinitions.Add(column);
+                    Children.Add(element);
+                    //SetDock(element, Dock.Left);
+                    SetColumn(element, Children.IndexOf(element));
+                    break;
+
+                case Orientation.Vertical:
+                    RowDefinition row = new RowDefinition();
+                    row.Height = new GridLength(1, GridUnitType.Auto);
+                    RowDefinitions.Add(row);
+                    Children.Add(element);
+                    //SetDock(element, Dock.Top);
+                    SetRow(element, Children.IndexOf(element));
+                    break;
+
+                default:
+                    break;
+            }
+        }
         protected override Size MeasureOverride(Size constraint)
         {
-            constraint.Width = (double)Parent.GetValue(ActualWidthProperty);
-            constraint.Height = (double)Parent.GetValue(ActualHeightProperty);
-
-            if (Orientation == Orientation.Horizontal)
+            if (double.IsInfinity(constraint.Width) && !double.IsInfinity(constraint.Height))
             {
-                double totalWidth = GetChildrenWidth();
-
-                foreach (UIElement child in InternalChildren)
-                {
-                    double percentWidth = (double)child.GetValue(ActualWidthProperty) / totalWidth;
-                    double finalWidth = constraint.Width * percentWidth;
-                    child.SetValue(WidthProperty, finalWidth);
-                }
+                constraint.Width = DesiredSize.Width;
             }
-            else if (Orientation == Orientation.Vertical)
+            else if (double.IsInfinity(constraint.Height) && !double.IsInfinity(constraint.Width))
             {
-                double totalHeight = GetChildrenHeight();
-
-                foreach (UIElement child in InternalChildren)
-                {
-                    double percentHeight = (double)child.GetValue(ActualHeightProperty) / totalHeight;
-                    double finalHeight = constraint.Height * percentHeight;
-                    child.SetValue(HeightProperty, finalHeight);
-                }
+                constraint.Height = DesiredSize.Height;
             }
 
-            return base.MeasureOverride(constraint);
-        }
-        private double GetChildrenWidth()
-        {
-            double totalWidth = 0;
+            Size finalSize = new Size();
+            Size infiniteSize = new Size(double.PositiveInfinity, double.PositiveInfinity);
+            Size tempSize = constraint;
+            string name = this.Name;
 
             foreach (UIElement child in InternalChildren)
             {
-                totalWidth += (double)child.GetValue(ActualWidthProperty);
+                if (child.DesiredSize.Equals(new Size(0, 0)))
+                {
+                    child.Measure(infiniteSize);
+
+                    switch (Orientation)
+                    {
+                        case Orientation.Horizontal:
+                            tempSize.Height = Math.Min(child.DesiredSize.Height, tempSize.Height);
+                            break;
+                        case Orientation.Vertical:
+                            tempSize.Width = Math.Min(child.DesiredSize.Width, tempSize.Width);
+                            break;
+                    }
+                }
             }
-
-            return totalWidth;
-        }
-
-        private double GetChildrenHeight()
-        {
-            double totalHeight = 0;
 
             foreach (UIElement child in InternalChildren)
             {
-                totalHeight += (double)child.GetValue(ActualHeightProperty);
+                child.Measure(tempSize);
+
+                switch (Orientation)
+                {
+                    case Orientation.Horizontal:
+                        finalSize.Height = Math.Max(finalSize.Height, child.DesiredSize.Height);
+                        finalSize.Width += child.DesiredSize.Width;
+                        break;
+                    case Orientation.Vertical:
+                        finalSize.Width = Math.Max(finalSize.Width, child.DesiredSize.Width);
+                        finalSize.Height += child.DesiredSize.Height;
+                        break;
+                }
             }
 
-            return totalHeight;
+            if (!double.IsInfinity(constraint.Height) && !double.IsInfinity(constraint.Width))
+            {
+                double coefficient;
+                switch (Orientation)
+                {
+                    case Orientation.Horizontal:
+                        coefficient = constraint.Width / finalSize.Width;
+                        finalSize.Height = finalSize.Height * coefficient;
+                        finalSize.Width = finalSize.Width * coefficient;
+                        break;
+                    case Orientation.Vertical:
+                        coefficient = finalSize.Width / finalSize.Height;
+                        finalSize.Width = constraint.Height * coefficient;
+                        finalSize.Height = finalSize.Width / coefficient;
+                        break;
+                }
+            }
+
+            //size.Width = double.IsPositiveInfinity(constraint.Width) ? size.Width : constraint.Width;
+            //size.Height = double.IsPositiveInfinity(constraint.Height) ? size.Height : constraint.Height;
+
+            if (finalSize.Width > DesiredSize.Width && finalSize.Height > DesiredSize.Height && !DesiredSize.Equals(new Size(0, 0)))
+            {
+                return base.MeasureOverride(DesiredSize);
+            }
+            else
+            {
+                return base.MeasureOverride(finalSize);
+            }
         }
     }
 }
